@@ -1,0 +1,10 @@
+-- https://planetscale.com/docs/postgres/search/reference/indexes#tokenization
+-- tin.tokenize is SETOF text: call it in the select list, one row per token
+tokenizeDefault:
+SELECT tin.tokenize('Jalapeño 😀');
+
+tokenizePreserveAccents:
+SELECT tin.tokenize('Jalapeño 😀', 'unicode', 'fold', 'preserve');
+
+tokenizeWhitespace:
+SELECT tin.tokenize(:text, 'whitespace', 'preserve', 'preserve', 'split', 256, 'discard', 'collapse');

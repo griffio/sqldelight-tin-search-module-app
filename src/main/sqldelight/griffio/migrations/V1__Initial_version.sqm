@@ -1,0 +1,21 @@
+-- https://planetscale.com/docs/postgres/search/get-started
+CREATE EXTENSION IF NOT EXISTS tin;
+
+CREATE TABLE posts (
+  id BIGINT PRIMARY KEY,
+  category TEXT NOT NULL,
+  body TEXT NOT NULL
+);
+
+INSERT INTO posts (id, category, body) VALUES
+  (1, 'fruit', 'I love fuji apples and juicy mangoes'),
+  (2, 'tasting', 'Grape tasting notes from the orchard'),
+  (3, 'fruit', 'The best juicy fuji apple in town'),
+  (4, 'fruit', 'Jalapeño salsa with citrus and melon 😀'),
+  (5, 'coffee', 'An espresso from a burr grinder beats a blade grinder');
+
+-- Each TIN index covers one text column, BM25 parameters and tokenization are index options
+CREATE INDEX posts_body_tin ON posts USING tin (body) WITH (k1 = 1.2, b = 0.75);
+
+ALTER INDEX posts_body_tin SET (k1 = 1.5);
+ALTER INDEX posts_body_tin RESET (k1);

@@ -1,0 +1,101 @@
+import org.jreleaser.model.Active
+
+plugins {
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.grammarKitComposer)
+    id("maven-publish")
+    id("org.jreleaser") version "1.18.0"
+}
+
+version = "0.0.1"
+group = "io.github.griffio"
+
+repositories {
+    maven("https://central.sonatype.com/repository/maven-snapshots")
+    mavenCentral()
+    gradlePluginPortal()
+    maven("https://cache-redirector.jetbrains.com/download-pgp-verifier")
+    // Grazie
+    maven("https://cache-redirector.jetbrains.com/packages.jetbrains.team/maven/p/grazi/grazie-platform-public")
+}
+
+grammarKit {
+    intellijRelease.set(libs.versions.intellij)
+}
+
+dependencies {
+    implementation(libs.sqldelight.dialect.api)
+    implementation(libs.sqldelight.postgresql.dialect)
+    implementation(libs.sqldelight.compiler.env)
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            artifactId = "sqldelight-tin"
+            groupId = project.group.toString()
+            version = project.version.toString()
+
+            pom {
+                name.set("SQLDelight tin Module")
+                description.set("SQLDelight module for PlanetScale tin search support")
+                url.set("https://github.com/griffio/sqldelight-tin-search-module-app")
+
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("griffio")
+                        name.set("griffio")
+                        email.set("griffio.work@gmail.com")
+                    }
+                }
+
+                scm {
+                    connection.set("scm:git:git://github.com/griffio/sqldelight-tin-search-module-app.git")
+                    developerConnection.set("scm:git:ssh://github.com/griffio/sqldelight-tin-search-module-app.git")
+                    url.set("https://github.com/griffio/sqldelight-tin-search-module-app")
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url = uri(layout.buildDirectory.dir("staging-deploy"))
+        }
+    }
+}
+
+jreleaser {
+    gitRootSearch = true
+    project {
+        description = "SQLDelight module for PlanetScale tin search support"
+        copyright = "2026 griffio"
+    }
+    deploy {
+        signing {
+            active = Active.ALWAYS
+        }
+        maven {
+            mavenCentral { // https://jreleaser.org/guide/latest/reference/deploy/maven/maven-central.html
+                create("maven-central") {
+                    active = Active.ALWAYS
+                    applyMavenCentralRules = true
+                    url = "https://central.sonatype.com/api/v1/publisher"
+                    stagingRepository("build/staging-deploy")
+                }
+            }
+        }
+    }
+}

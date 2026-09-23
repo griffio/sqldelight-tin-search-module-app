@@ -1,0 +1,60 @@
+{
+  // Specify the parent parser.
+  overrides="app.cash.sqldelight.dialects.postgresql.grammar.PostgreSqlParser"
+  elementTypeClass = "com.alecstrong.sql.psi.core.SqlElementType"
+
+  implements="com.alecstrong.sql.psi.core.psi.SqlCompositeElement"
+  extends="com.alecstrong.sql.psi.core.psi.SqlCompositeElementImpl"
+  psiClassPrefix = "Tin"
+
+  // NOTE: do not add `//` comments between rules - the grammar composer merges them into the following rule.
+  // Rules:
+  //   function_name       tin.score(ctid), tin.full_score, tin.max_score, tin.highlight, tin.highlight_ansi, tin.tokenize
+  //   index_method        CREATE INDEX ... USING tin (col)
+  //   storage_parameters  WITH (k1 = 1.2, b = 0.75, tokenizer = whitespace, ...) and ALTER INDEX ... SET/RESET (...)
+  //   tinql_operator      col ==> 'TINQL query'   https://planetscale.com/docs/postgres/search/reference/operator
+
+  parserImports=[
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.COMMA"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.DOT"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.ID"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.LP"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.RP"
+
+    "static com.alecstrong.sql.psi.core.SqlParserUtil.columnExprExt"
+    "static com.alecstrong.sql.psi.core.SqlParser.column_expr_real"
+
+    "static com.alecstrong.sql.psi.core.SqlParser.expr"
+  ]
+}
+
+function_name ::= [ 'tin' DOT ] ID {
+  extends = "com.alecstrong.sql.psi.core.psi.impl.SqlFunctionNameImpl"
+  implements = "com.alecstrong.sql.psi.core.psi.SqlFunctionName"
+}
+
+index_method ::= 'tin' {
+  extends = "app.cash.sqldelight.dialects.postgresql.grammar.psi.impl.PostgreSqlIndexMethodImpl"
+  implements = "app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlIndexMethod"
+}
+
+storage_parameters ::= 'k1' | 'b' | 'score_stop_words'
+  | 'tokenizer' | 'case_folding' | 'accent_folding' | 'long_tokens' | 'max_token_bytes' | 'graphemes' | 'position_gaps'
+  | 'initial_segment_count' | 'target_segment_count' | 'max_mutable_segment_size' | 'max_merged_segment_size' | 'dead_percent_threshold' {
+  extends = "app.cash.sqldelight.dialects.postgresql.grammar.psi.impl.PostgreSqlStorageParameterImpl"
+  implements = "app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlStorageParameter"
+}
+
+private sql_column_expr ::= <<columnExprExt <<column_expr_real>>>>
+
+tinql_operator ::= '==>'
+
+tinql_operator_expression ::= sql_column_expr tinql_operator <<expr '-1'>> {
+  mixin = "griffio.grammar.mixins.TinTinqlOperatorMixin"
+  pin = 2
+}
+
+extension_expr ::= tinql_operator_expression {
+  extends = "app.cash.sqldelight.dialects.postgresql.grammar.psi.impl.PostgreSqlExtensionExprImpl"
+  implements = "app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlExtensionExpr"
+}

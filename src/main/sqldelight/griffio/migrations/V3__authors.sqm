@@ -1,0 +1,19 @@
+-- Joins with a score on each side and LATERAL top-k per outer row
+-- https://planetscale.com/docs/postgres/search/reference/sql-shapes
+CREATE TABLE authors (
+  id BIGINT PRIMARY KEY,
+  name TEXT NOT NULL,
+  bio TEXT NOT NULL,
+  topics TEXT NOT NULL
+);
+
+INSERT INTO authors (id, name, bio, topics) VALUES
+  (1, 'Ada', 'Orchard keeper and fruit taster', 'fuji OR apple OR grape'),
+  (2, 'Bo', 'Barista and home roaster', 'espresso OR grinder');
+
+CREATE INDEX authors_bio_tin ON authors USING tin (bio);
+
+ALTER TABLE posts ADD COLUMN author_id BIGINT REFERENCES authors (id);
+
+UPDATE posts SET author_id = 1 WHERE category IN ('fruit', 'tasting');
+UPDATE posts SET author_id = 2 WHERE category = 'coffee';

@@ -1,0 +1,24 @@
+-- https://planetscale.com/docs/postgres/search/reference/sql-shapes#several-tin-indexed-columns
+searchBothColumns:
+SELECT id, tin.full_score(ctid) AS score, name, notes
+FROM fruits
+WHERE name ==> :nameQuery
+  AND notes ==> :notesQuery
+ORDER BY score DESC
+LIMIT 10;
+
+searchEitherColumn:
+SELECT id, tin.full_score(ctid) AS score, name, notes
+FROM fruits
+WHERE name ==> :query OR notes ==> :query
+ORDER BY score DESC
+LIMIT 10;
+
+-- TINQL boost ^N weights the name match higher than the notes match
+searchBoostedName:
+SELECT id, tin.full_score(ctid) AS score, name, notes
+FROM fruits
+WHERE name ==> 'fuji^1.5'
+  AND notes ==> 'citrus'
+ORDER BY score DESC
+LIMIT 10;

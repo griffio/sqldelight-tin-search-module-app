@@ -1,0 +1,27 @@
+-- Search across columns: one TIN index per column, combine ==> predicates in the query
+-- https://planetscale.com/docs/postgres/search/get-started#search-across-columns
+CREATE TABLE fruits (
+  id BIGINT PRIMARY KEY,
+  name TEXT NOT NULL,
+  notes TEXT NOT NULL
+);
+
+INSERT INTO fruits (id, name, notes) VALUES
+  (1, 'Fuji apple', 'Crisp and sweet with a hint of citrus'),
+  (2, 'Meyer lemon', 'Citrus with a floral aroma'),
+  (3, 'Honeydew melon', 'Mild and juicy, pairs with citrus'),
+  (4, 'Kiwi', 'Tart green flesh');
+
+CREATE INDEX fruits_name_tin ON fruits USING tin (name);
+
+-- Tokenization policy is the same at index time and query time
+-- https://planetscale.com/docs/postgres/search/reference/indexes#tokenization
+CREATE INDEX fruits_notes_tin ON fruits USING tin (notes) WITH (
+  tokenizer = whitespace,
+  case_folding = fold,
+  accent_folding = preserve,
+  long_tokens = truncate,
+  max_token_bytes = 64,
+  graphemes = discard,
+  position_gaps = collapse
+);

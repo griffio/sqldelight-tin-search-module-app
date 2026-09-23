@@ -1,0 +1,24 @@
+-- https://planetscale.com/docs/postgres/search/reference/sql-shapes#joins-with-a-score-on-each-side
+joinScores:
+SELECT p.id, p.body,
+       tin.full_score(p.ctid) AS postScore,
+       tin.full_score(a.ctid) AS authorScore
+FROM posts p
+JOIN authors a ON a.id = p.author_id
+WHERE p.body ==> :postQuery
+  AND a.bio ==> :bioQuery
+ORDER BY postScore + authorScore DESC
+LIMIT 10;
+
+-- The right-hand side of ==> can be a column from the outer query
+topPostsPerAuthor:
+SELECT a.name, p.id, p.body, p.score
+FROM authors a
+CROSS JOIN LATERAL (
+  SELECT id, body, tin.full_score(ctid) AS score
+  FROM posts
+  WHERE body ==> a.topics
+  ORDER BY score DESC
+  LIMIT 3
+) p
+ORDER BY a.name, p.score DESC;

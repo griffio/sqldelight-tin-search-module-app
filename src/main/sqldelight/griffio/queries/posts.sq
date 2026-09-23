@@ -1,0 +1,85 @@
+-- https://planetscale.com/docs/postgres/search/reference/operator
+searchPosts:
+SELECT id, body
+FROM posts
+WHERE body ==> :query;
+
+searchPhrase:
+SELECT id, body
+FROM posts
+WHERE body ==> 'apple AND "fuji apple"';
+
+searchAnyOf:
+SELECT id, body
+FROM posts
+WHERE body ==> ANY (ARRAY['grape', 'melon']);
+
+countMatches:
+SELECT count(*)
+FROM posts
+WHERE body ==> :query;
+
+-- https://planetscale.com/docs/postgres/search/scoring
+-- Lead (the local dev extension) and tiny corpora: every term is "dense" so tin.score is 0.0.
+-- tin.full_score keeps every term, tin.score(ctid, dense_ratio) with a ratio above 1 disables elision.
+rankPosts:
+SELECT id, tin.full_score(ctid) AS score, body
+FROM posts
+WHERE body ==> :query
+ORDER BY score DESC
+LIMIT :limit;
+
+rankPostsBm25Override:
+SELECT id, tin.full_score(ctid, 3.2, 0.2) AS score, body
+FROM posts
+WHERE body ==> :query
+ORDER BY tin.full_score(ctid, 3.2, 0.2) DESC
+LIMIT 10;
+
+relativeScore:
+SELECT id,
+       tin.score(ctid, 1.5) AS score,
+       tin.score(ctid, 1.5) / tin.max_score(ctid) AS relative,
+       body
+FROM posts
+WHERE body ==> :query
+ORDER BY score DESC
+LIMIT 10;
+
+-- https://planetscale.com/docs/postgres/search/highlighting
+highlightPosts:
+SELECT id, tin.highlight(body) AS highlighted
+FROM posts
+WHERE body ==> :query
+LIMIT 20;
+
+highlightMark:
+SELECT tin.highlight(body, '<mark>', '</mark>', :query) AS highlighted
+FROM posts
+WHERE id = :id;
+
+highlightWithLabel:
+SELECT id, tin.highlight(body, '<mark class="hl-$QUERY_LABEL">', '</mark>') AS highlighted
+FROM posts
+WHERE body ==> 'apple OR "fuji apple"';
+
+highlightAnsi:
+SELECT tin.highlight_ansi(body) AS highlighted
+FROM posts
+WHERE body ==> :query
+LIMIT 5;
+
+-- Filtering with btree columns alongside the TIN predicate
+searchInCategory:
+SELECT id, body, tin.full_score(ctid) AS score
+FROM posts
+WHERE body ==> :query
+  AND category = :category
+ORDER BY score DESC
+LIMIT 10;
+
+-- Implicit highlight query in DML RETURNING
+reviewPosts:
+UPDATE posts SET category = :category
+WHERE body ==> :query
+RETURNING id, tin.highlight(body) AS highlighted;
